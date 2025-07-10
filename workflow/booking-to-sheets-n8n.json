@@ -1,0 +1,623 @@
+{
+  "name": "Auto Sistem 1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e351ea82-b4ce-45f3-be45-4782bb104bd1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        -360
+      ],
+      "id": "2fd34063-a3b5-4a32-aaef-fb370a5b4f5f",
+      "name": "Webhook",
+      "webhookId": "e351ea82-b4ce-45f3-be45-4782bb104bd1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.body }}\n",
+        "options": {
+          "systemMessage": "=Kamu adalah asisten chatbot untuk NJTERTOP Photography.\n\nTugasmu:\n\n1. Deteksi maksud pesan pengguna. Tentukan salah satu dari intent berikut:\n   - **\"DAFTAR\"**: pengguna ingin Booking Sport Photography.\n   - **\"CEK_STATUS\"**: pengguna ingin cek status booking mereka.\n   - **\"BUKTI_TRANSFER\"**: pengguna mengirim bukti transfer atau menyatakan sudah transfer.\n   - **\"PRICELIST\"**: pengguna meminta harga untuk pemesanan lapangan di FG Sport Lampung.\n\n---\n\n2. Jika pengguna ingin **DAFTAR**, lakukan langkah berikut:\n\n2.1. Periksa apakah pesan sudah memuat informasi berikut:\n   - Nama  \n   - Email  \n   - Alamat  \n   - Tanggal Booking  \n   - Jam Booking  \n   - Lokasi Main (Lapangan atau Futsal)\n\n2.2. Jika lengkap, kembalikan dalam format JSON berikut:\n\n{\n  \"Intent\": \"DAFTAR\",\n  \"Nama\": \"Isi dari pengguna\",\n  \"Email\": \"Isi dari pengguna\",\n  \"Alamat\": \"Isi dari pengguna\",\n  \"Tanggal_Booking\": \"Isi dari pengguna\",\n  \"Jam_Booking\": \"Isi dari pengguna\",\n  \"Lokasi_Main\": \"Isi dari pengguna\",\n  \"Nomor_Wa\": \"{{ $json.body.from.split('@')[0] }}\",\n  \"Nama_Akun_WA\": \"{{ $json.body.pushName }}\",\n  \"Timestamp\": \"{{ $now.format('yyyy-MM-dd HH:mm:ss') }}\"\n}\n\n2.3. Jika belum lengkap, balas:\n\nBooking Sport Photography  \nNama:  \nEmail:  \nAlamat:  \nTanggal:  \nJam:  \nLokasi Main:\n\n---\n\n2.4. Setelah data lengkap diterima, **jangan langsung mengirim konfirmasi booking.**  \nSistem akan memeriksa Google Sheets apakah jadwal tersedia atau bentrok.\n\n---\n\n2.5. Aturan Booking:\n\n- Booking dianggap **bentrok** jika:\n  - Sudah ada booking **pada jam yang sama**, atau\n  - Sudah ada booking **dalam selisih kurang dari 2 jam** (±1 jam).\n    Contoh: Jika pengguna ingin booking pukul 17.00, maka sistem akan menolak jika ada booking jam 16.00 atau 18.00.\n\n- Jika **jadwal bentrok**, sistem akan balas seperti ini:\n\n⚠️ Mohon maaf, jadwal yang Anda pilih sudah dibooking orang lain (minimal jarak 2 jam).  \nSilakan pilih waktu lain dan kirimkan ulang datanya.\n\n---\n\n2.6. Jika terjadi bentrok, bantu pengguna dengan menampilkan saran jam kosong:\n\n- Tampilkan daftar **jam kosong** pada hari yang sama, dengan interval setiap 30 menit dari jam 07.00 sampai 22.00.\n- Hanya tampilkan jam yang:\n  - Belum dibooking oleh orang lain pada hari yang sama\n  - Tidak berdekatan (±1 jam) dengan booking yang sudah ada\n- Contoh balasan:\n\nBerikut adalah daftar jam yang masih tersedia pada tanggal {{Tanggal_Booking}}:\n\n🕒 07.00 WIB  \n🕒 09.30 WIB  \n🕒 13.00 WIB  \n🕒 15.30 WIB  \n🕒 18.30 WIB\n🕒 20.00 WIB\n\nSilakan pilih salah satu dan kirim ulang datanya.\n\n---\n\n2.7. Jika tidak bentrok, sistem akan membalas:\n\n✅ Pendaftaran Anda sudah kami terima.\n\nSilakan lakukan pembayaran DP sebesar 50% ke:  \nBank BCA  \nNo. Rekening: 8110664321  \na.n. Febriantah\n\nSetelah transfer, mohon kirimkan buktinya di sini untuk kami konfirmasi.  \nTerima kasih.\n\n---\n\n3. Jika pengguna ingin **CEK_STATUS** booking:\n\n- Jika data ditemukan di Google Sheets, balas:\n  ✅ Booking atas nama {{Nama}} ditemukan.  \n  📅 Tanggal: {{Tanggal_Booking}}  \n  🕒 Jam: {{Jam_Booking}}  \n  📍 Lokasi: {{Lokasi_Main}}  \n  💳 Status DP: {{Status_DP}}\n\n- Jika data tidak ditemukan, balas:\n  ⚠️ Mohon maaf, data booking Anda tidak ditemukan.  \n  Sepertinya Anda belum melakukan pendaftaran.  \n  Silakan ketik **DAFTAR** untuk memulai proses booking.  \n  Atau ketik:  \n  **Cek status atas nama [Nama Anda]**\n\n---\n\n4. Jika pengguna menyatakan sudah transfer (misalnya dengan pesan: “Sudah transfer”, “Ini bukti”, atau “Transfer selesai”), lakukan pengecekan:\n\n4.1. Jika pengguna juga mengirim gambar (WhatsApp `type === imageMessage`), maka:\n\nBalas:\n✅ Bukti transfer Anda sudah kami terima. Akan kami konfirmasi manual.  \nMohon tunggu verifikasi dari admin.\n\n4.2. Jika tidak ada gambar yang dikirim (hanya teks), maka balas:\n⚠️ Mohon lampirkan foto bukti transfer Anda (screenshot atau foto struk).  \nKami akan memverifikasinya setelah Anda mengirimkan bukti.\n\n\n5. Jika pengguna meminta **PRICELIST**, balas:\n\n**Lapangan Besar**:  \n- 2 Jam 1 Team Sparingan: 300K  \n- 2 Jam 2 Team Sparingan: 400K  \n- 2 Jam Internal Game: 400K  \n- 2 Jam 3 Team: 500K  \n- 2 Jam 4 Team: 600K  \n\n**Lapangan Futsal**:  \n- 2 Jam 1 Team Sparingan: 300K  \n- 2 Jam 2 Team Sparingan: 400K  \n- 2 Jam Internal Game: 400K  \n- 2 Jam 3 Team: 500K  \n- 2 Jam 4 Team: 600K  \n\n**Pertambahan Waktu per 1 Jam**: 50K\n\n---\n\n📌 Catatan Teknis:\n- Nomor WA: `{{ $json.body.from.split('@')[0] }}`\n- Nama Akun WA: `{{ $json.body.pushName }}`\n- Timestamp: `{{ $now.format('yyyy-MM-dd HH:mm:ss') }}`\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -360
+      ],
+      "id": "f146f162-6504-4ee8-96ce-ed9d9595a186",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        20
+      ],
+      "id": "2f94ca82-ae28-49fb-9c41-dc4e100c307b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "85OFLamIPqIR2v1s",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8",
+          "mode": "list",
+          "cachedResultName": "Booking Studio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 148670221,
+          "mode": "list",
+          "cachedResultName": "Booking",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit#gid=148670221"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Timestamp', ``, 'string') }}",
+            "Nama Akun WA": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nama_Akun_WA', ``, 'string') }}",
+            "Nomor Wa": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nomor_Wa', ``, 'string') }}",
+            "Nama": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Nama', ``, 'string') }}",
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+            "Alamat": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Alamat', ``, 'string') }}",
+            "Tanggal Booking": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Tanggal_Booking', ``, 'string') }}",
+            "Jam Booking": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Jam_Booking', ``, 'string') }}",
+            "Status DP": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status_DP', ``, 'string') }}",
+            "Bukti Transfer": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Bukti_Transfer', ``, 'string') }}",
+            "Lokasi Main": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Lokasi_Main', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nama Akun WA",
+              "displayName": "Nama Akun WA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nomor Wa",
+              "displayName": "Nomor Wa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nama",
+              "displayName": "Nama",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Alamat",
+              "displayName": "Alamat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tanggal Booking",
+              "displayName": "Tanggal Booking",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Jam Booking",
+              "displayName": "Jam Booking",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lokasi Main",
+              "displayName": "Lokasi Main",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status DP",
+              "displayName": "Status DP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Bukti Transfer",
+              "displayName": "Bukti Transfer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        380,
+        20
+      ],
+      "id": "240ad81d-97ce-4c26-90e6-78572ef4909e",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3cHckEQqWdonnThD",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.notif.my.id/api/v2/send-message",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "WUlstF80FKY8912vXk1751364352812"
+            },
+            {
+              "name": "receiver",
+              "value": "={{ $('Webhook').item.json.body.from }}"
+            },
+            {
+              "name": "mtype",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "name": "readmessage",
+              "value": "yes"
+            },
+            {
+              "name": "id",
+              "value": "={{ $('Webhook').item.json.body.id }}"
+            },
+            {
+              "name": "duration",
+              "value": "2000"
+            },
+            {
+              "name": "participant",
+              "value": "6285642537779@s.whatsapp.net"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        -360
+      ],
+      "id": "cde58610-3b3a-48cc-a8ca-746cefce2e31",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.from.split('@')[0] }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        40
+      ],
+      "id": "2027176f-3ce9-4ddf-9bd8-6774626a913d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8",
+          "mode": "list",
+          "cachedResultName": "Booking Studio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 148670221,
+          "mode": "list",
+          "cachedResultName": "Booking",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit#gid=148670221"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Nama",
+              "lookupValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('values0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        560,
+        20
+      ],
+      "id": "aaefbf7c-65a8-48ed-9cf6-55bc93e91c4f",
+      "name": "Lookup Row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3cHckEQqWdonnThD",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Ini sebagai titik masuk pesan dari WhatsApp\n\n",
+        "height": 340,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -340,
+        -520
+      ],
+      "typeVersion": 1,
+      "id": "8b7f7699-60c6-4ad6-b994-e49f7d83d51f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent dipakai untuk memahami maksud dari pesan user (daftar, cek status, bukti transfer, dll)\n",
+        "height": 340,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -520
+      ],
+      "typeVersion": 1,
+      "id": "fc2e1daf-55bb-4356-8a87-c37ae5211a22",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Mengirim respons ke WhatsApp melalui API \n\n",
+        "height": 340,
+        "width": 380,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        480,
+        -520
+      ],
+      "typeVersion": 1,
+      "id": "0c5f64c6-add7-4593-afb3-345c5aa523c6",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## AI Chat Model \n\n",
+        "height": 340,
+        "width": 300,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -340,
+        -140
+      ],
+      "typeVersion": 1,
+      "id": "4c5229d1-4f98-4442-b0dc-4d30aa49655c",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Tools Google Sheets (untuk menyimpan dan cek booking)\n\n\n",
+        "height": 340,
+        "width": 580,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        280,
+        -140
+      ],
+      "typeVersion": 1,
+      "id": "59f6ea74-1a6e-4437-bcc2-4e5fd9f7e8f5",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Menyimpan percakapan sebelumnya\n\n",
+        "height": 340,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -140
+      ],
+      "typeVersion": 1,
+      "id": "66d40caf-9112-46ad-b0a7-de92b1764057",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8",
+          "mode": "list",
+          "cachedResultName": "Booking Studio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 148670221,
+          "mode": "list",
+          "cachedResultName": "Booking",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-eCnn48ETGPxZz5pO_LMuWp1JWWuyv08vrS-YhldzF8/edit#gid=148670221"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Tanggal Booking",
+              "lookupValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('values0_Value', ``, 'string') }}"
+            },
+            {
+              "lookupColumn": "Jam Booking",
+              "lookupValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('values1_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        740,
+        20
+      ],
+      "id": "7fd04fc9-0bd1-49cd-9119-9d8740b8701f",
+      "name": "Cek Booking",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3cHckEQqWdonnThD",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "autosistem.app.n8n.cloud",
+            "user-agent": "axios/1.9.0",
+            "content-length": "463",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "103.20.235.12",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "SG",
+            "cf-ray": "95af75d93361eba2-SIN",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "103.20.235.12, 172.69.166.27",
+            "x-forwarded-host": "autosistem.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-86-76bcc99db7-mfchz",
+            "x-is-trusted": "yes",
+            "x-real-ip": "103.20.235.12"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "session": "wagateway01072025fs101829",
+            "id": "3FF46B27631FBC73D663",
+            "unixTimestamp": 1751808664,
+            "timeStamp": "06/07/25 20:31:04",
+            "botNumber": "6285158142722@s.whatsapp.net",
+            "from": "62895330190644@s.whatsapp.net",
+            "sender": "62895330190644@s.whatsapp.net",
+            "fromMe": false,
+            "pushName": "Hefri Juanto",
+            "isGroup": false,
+            "groupName": false,
+            "type": "extendedTextMessage",
+            "mtype": "text",
+            "body": "hai",
+            "address": false,
+            "degreesLatitude": false,
+            "degreesLongitude": false,
+            "urlmedia": true
+          },
+          "webhookUrl": "https://autosistem.app.n8n.cloud/webhook/e351ea82-b4ce-45f3-be45-4782bb104bd1",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Cek Booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "455de427-dd7b-4c0b-941f-77f0556eef38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "18ac3b1ba9aba518e179dcb40734a85046984af206f781e4d62508fcc0aa9877"
+  },
+  "id": "w6dIr18rFvbmq81d",
+  "tags": []
+}
