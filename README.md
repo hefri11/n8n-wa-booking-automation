@@ -2,6 +2,8 @@
 
 Sistem otomatisasi ini dibangun dengan [n8n](https://n8n.io) untuk memproses booking studio olahraga melalui WhatsApp dan menyimpan datanya ke Google Sheets secara otomatis.
 
+![image alt](https://github.com/hefri11/n8n-wa-booking-automation/blob/main/assets/screenshot-ui.png?raw=true)
+
 ---
 
 ## 🚀 Fitur Utama
