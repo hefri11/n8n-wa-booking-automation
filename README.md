@@ -80,7 +80,7 @@ Sistem otomatisasi ini dibangun dengan [n8n](https://n8n.io) untuk memproses boo
 ## 👤 Kontributor
 
 - Hefri Juanto — WhatsApp Automation Developer  
-  [IG: @njtertop](https://instagram.com/hefrijunt)
+  [IG: @hefrijunt](https://instagram.com/hefrijunt)
 
 ---
 
